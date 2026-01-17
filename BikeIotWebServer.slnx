@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="BikeIotCleintTests/BikeIotClientTests.csproj" />
+  <Project Path="BikeIotWebServer/BikeIotWebServer.csproj" />
+</Solution>
