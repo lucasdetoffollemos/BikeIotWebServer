@@ -7,7 +7,7 @@ namespace BikeIotWebServer.mqtt
 {
     public class MqttService : IHostedService
     {
-        private MqttServer _mqttServer = null;
+        private MqttServer? _mqttServer = null;
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
@@ -19,6 +19,9 @@ namespace BikeIotWebServer.mqtt
                 .Build();
 
             _mqttServer = factory.CreateMqttServer(options);
+
+            var message = new MqttApplicationMessageBuilder().WithTopic("HelloWorld").WithPayload("Test").Build();
+
 
 
             _mqttServer.ApplicationMessageNotConsumedAsync += e =>
