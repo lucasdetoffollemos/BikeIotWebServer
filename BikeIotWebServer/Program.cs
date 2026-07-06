@@ -1,6 +1,7 @@
 
 using BikeIotWebServer.Infra;
 using BikeIotWebServer.mqtt;
+using BikeIotWebServer.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace BikeIotWebServer
@@ -17,6 +18,7 @@ namespace BikeIotWebServer
 
             builder.Services.AddHostedService<MqttSubscriberService>();
             builder.Services.AddScoped<IBikeRepository, BikeRepository>();
+            builder.Services.AddScoped<BikeTelemetryService>();
 
             // Add EF Core DbContext (in-memory for now)
             builder.Services.AddDbContext<BikeContext>(options =>

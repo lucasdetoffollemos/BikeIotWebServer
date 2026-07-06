@@ -1,7 +1,6 @@
 ﻿using BikeIotWebServer.Infra;
-using BikeIotWebServer.Models;
+using BikeIotWebServer.Services;
 using BikeIotWebServer.ViewModels;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BikeIotWebServer.Controllers
@@ -11,9 +10,12 @@ namespace BikeIotWebServer.Controllers
     public class BikeController : ControllerBase
     {
         public readonly IBikeRepository _bikeRepository;
-        public BikeController(IBikeRepository bikeRepository)
+        private readonly BikeTelemetryService _bikeTelemetryService;
+
+        public BikeController(IBikeRepository bikeRepository, BikeTelemetryService bikeTelemetryService)
         {
              _bikeRepository = bikeRepository;
+             _bikeTelemetryService = bikeTelemetryService;
         }
 
         [HttpGet("status")]
@@ -31,16 +33,7 @@ namespace BikeIotWebServer.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var bikeData = new Bike
-            {
-                BikeId = data.BikeId,
-                Speed = data.Velocidade,
-                Latitude = data.Latitude,
-                Longitude = data.Longitude,
-                Timestamp = data.Timestamp
-            };
-
-            await _bikeRepository.AddBikeAsync(bikeData);
+            await _bikeTelemetryService.SaveAsync(data);
 
             return Ok(new
             {
