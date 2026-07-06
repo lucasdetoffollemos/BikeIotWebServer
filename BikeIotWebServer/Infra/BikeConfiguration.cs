@@ -14,6 +14,9 @@ namespace BikeIotWebServer.Infra
                    .IsRequired()
                    .ValueGeneratedOnAdd();
 
+            builder.Property(b => b.BikeId)
+                   .IsRequired();
+
             // Basic properties
             builder.Property(b => b.Speed)
                    .IsRequired();

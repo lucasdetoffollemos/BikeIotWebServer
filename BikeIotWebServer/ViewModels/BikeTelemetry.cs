@@ -5,7 +5,10 @@ namespace BikeIotWebServer.ViewModels
 {
     public class BikeTelemetry
     {
-        
+        [Required]
+        [JsonPropertyName("bikeId")]
+        public int BikeId { get; set; }
+
         [Required]
         [JsonPropertyName("velocidade")]
         public float Velocidade { get; set; }

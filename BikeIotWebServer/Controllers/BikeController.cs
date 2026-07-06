@@ -33,6 +33,7 @@ namespace BikeIotWebServer.Controllers
 
             var bikeData = new Bike
             {
+                BikeId = data.BikeId,
                 Speed = data.Velocidade,
                 Latitude = data.Latitude,
                 Longitude = data.Longitude,
@@ -44,6 +45,7 @@ namespace BikeIotWebServer.Controllers
             return Ok(new
             {
                 received = true,
+                bikeId = data.BikeId,
                 velocidade = data.Velocidade,
                 posicao = new { data.Latitude, data.Longitude },
                 timestamp = data.Timestamp
@@ -58,6 +60,7 @@ namespace BikeIotWebServer.Controllers
 
             var telemetry = bikes.Select(b => new BikeTelemetry
             {
+                BikeId = b.BikeId,
                 Velocidade = (float)b.Speed,
                 Latitude = (float)b.Latitude,
                 Longitude = (float)b.Longitude,
