@@ -1,6 +1,7 @@
 using System.Text.Json;
 using BikeIotWebServer.Services;
 using BikeIotWebServer.ViewModels;
+using Microsoft.Extensions.Configuration;
 using MQTTnet;
 using MQTTnet.Client;
 
@@ -10,11 +11,13 @@ namespace BikeIotWebServer.mqtt
     {
         private const string TopicFilter = "devices/+/telemetry";
         private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly IConfiguration _configuration;
         private IMqttClient? _mqttClient;
 
-        public MqttSubscriberService(IServiceScopeFactory serviceScopeFactory)
+        public MqttSubscriberService(IServiceScopeFactory serviceScopeFactory, IConfiguration configuration)
         {
             _serviceScopeFactory = serviceScopeFactory;
+            _configuration = configuration;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -62,8 +65,11 @@ namespace BikeIotWebServer.mqtt
                 Console.WriteLine($"MQTT message received. Topic: {topic}, Payload: {payload}");
             };
 
+            var mqttHost = _configuration["Mqtt:Host"] ?? "localhost";
+            var mqttPort = _configuration.GetValue<int?>("Mqtt:Port") ?? 1883;
+
             var options = new MqttClientOptionsBuilder()
-                .WithTcpServer("localhost", 1883)
+                .WithTcpServer(mqttHost, mqttPort)
                 .WithClientId($"bike-web-subscriber-{Guid.NewGuid():N}")
                 .Build();
 
@@ -73,7 +79,7 @@ namespace BikeIotWebServer.mqtt
                 .WithTopic(TopicFilter)
                 .Build(), cancellationToken);
 
-            Console.WriteLine($"MQTT subscriber connected on localhost:1883 ({TopicFilter}).");
+            Console.WriteLine($"MQTT subscriber connected on {mqttHost}:{mqttPort} ({TopicFilter}).");
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)

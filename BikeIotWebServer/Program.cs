@@ -39,9 +39,15 @@ namespace BikeIotWebServer
                 });
             });
 
-            var app = builder.Build();
+             var app = builder.Build();
 
-            
+            using (var scope = app.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<BikeContext>();
+                dbContext.Database.Migrate();
+            }
+
+             
 
 
 
