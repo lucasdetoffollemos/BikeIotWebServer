@@ -36,6 +36,8 @@ POSTGRES_PASSWORD=postgres
 
 MQTT_HOST=192.168.218.119
 MQTT_PORT=1883
+MQTT_USERNAME=bikeiot
+MQTT_PASSWORD=
 
 CONNECTION_STRING=Host=postgres;Port=5432;Database=bikesdb;Username=postgres;Password=postgres
 ```
@@ -62,6 +64,10 @@ CONNECTION_STRING=Host=postgres;Port=5432;Database=bikesdb;Username=postgres;Pas
   - Points the API container to the MQTT broker IP.
 - `MQTT_PORT=1883`
   - MQTT broker port.
+- `MQTT_USERNAME=bikeiot`
+  - MQTT username used by the API to authenticate with Mosquitto.
+- `MQTT_PASSWORD=`
+  - MQTT password used by the API to authenticate with Mosquitto. Set the real value on the Raspberry Pi and do not commit it.
 - `CONNECTION_STRING=Host=postgres;Port=5432;Database=bikesdb;Username=postgres;Password=postgres`
   - Connection string used by the ASP.NET application to connect to PostgreSQL.
 
@@ -69,6 +75,7 @@ CONNECTION_STRING=Host=postgres;Port=5432;Database=bikesdb;Username=postgres;Pas
 
 - `POSTGRES_HOST=postgres` works because the API and PostgreSQL run in the same Docker Compose network.
 - `MQTT_HOST` uses a fixed IP because the MQTT broker is outside this Compose stack.
+- `MQTT_USERNAME` and `MQTT_PASSWORD` must match the Mosquitto user created on the Raspberry Pi.
 - The `.env` file is loaded automatically by Docker Compose when it is in the same directory as `docker-compose.yml`.
 
 ## How To Edit the .env File on Raspberry Pi

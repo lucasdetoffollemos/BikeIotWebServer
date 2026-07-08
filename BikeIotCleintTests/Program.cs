@@ -11,10 +11,19 @@ namespace BikeIotClientTests
             var factory = new MqttFactory();
             var client = factory.CreateMqttClient();
 
-            var options = new MqttClientOptionsBuilder()
+            var mqttUsername = Environment.GetEnvironmentVariable("MQTT_USERNAME") ?? "bikeiot";
+            var mqttPassword = Environment.GetEnvironmentVariable("MQTT_PASSWORD") ?? string.Empty;
+
+            var optionsBuilder = new MqttClientOptionsBuilder()
                 .WithTcpServer("localhost", 1883)
-                .WithClientId("test-device-001")
-                .Build();
+                .WithClientId("test-device-001");
+
+            if (!string.IsNullOrWhiteSpace(mqttUsername))
+            {
+                optionsBuilder = optionsBuilder.WithCredentials(mqttUsername, mqttPassword);
+            }
+
+            var options = optionsBuilder.Build();
 
             await client.ConnectAsync(options);
 

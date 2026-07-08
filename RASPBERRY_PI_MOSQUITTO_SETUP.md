@@ -30,7 +30,8 @@ Use this content in `mosquitto.conf`:
 
 ```conf
 listener 1883
-allow_anonymous true
+allow_anonymous false
+password_file /etc/mosquitto/passwd
 ```
 
 Important:
@@ -66,7 +67,23 @@ sudo cp /home/pi/mosquitto.conf /etc/mosquitto/conf.d/mosquitto.conf
 sudo cp /path/to/mosquitto.conf /etc/mosquitto/conf.d/mosquitto.conf
 ```
 
-## 5. Restart Mosquitto
+## 5. Create the Mosquitto User
+
+Create the MQTT user used by the app:
+
+```bash
+sudo mosquitto_passwd -c /etc/mosquitto/passwd bikeiot
+```
+
+If you need to update the password later:
+
+```bash
+sudo mosquitto_passwd /etc/mosquitto/passwd bikeiot
+```
+
+The password file is created on the Raspberry Pi and should not be committed to this repository.
+
+## 6. Restart Mosquitto
 
 ```bash
 sudo systemctl restart mosquitto
@@ -78,7 +95,7 @@ Check status again:
 sudo systemctl status mosquitto --no-pager
 ```
 
-## 6. Troubleshooting
+## 7. Troubleshooting
 
 If Mosquitto fails to start, inspect the logs:
 
@@ -98,26 +115,34 @@ Check which config files are being loaded:
 sudo grep -R "listener\|allow_anonymous\|include_dir" /etc/mosquitto
 ```
 
-## 7. Test Publish/Subscribe
+Confirm the password file path is loaded too:
+
+```bash
+sudo grep -R "password_file" /etc/mosquitto
+```
+
+## 8. Test Publish/Subscribe
 
 Subscribe:
 
 ```bash
-mosquitto_sub -h localhost -t "devices/+/telemetry" -v
+mosquitto_sub -h localhost -u bikeiot -P "<password>" -t "devices/+/telemetry" -v
 ```
 
 Publish a test message:
 
 ```bash
-mosquitto_pub -h localhost -t "devices/bike-001/telemetry" -m '{"velocidade":22.5,"latitude":-23.5505,"longitude":-46.6333,"timestamp":"2026-06-19T14:30:00Z"}'
+mosquitto_pub -h localhost -u bikeiot -P "<password>" -t "devices/bike-001/telemetry" -m '{"velocidade":22.5,"latitude":-23.5505,"longitude":-46.6333,"timestamp":"2026-06-19T14:30:00Z"}'
 ```
 
-## 8. MQTT Explorer Settings
+## 9. MQTT Explorer Settings
 
 Use these settings in MQTT Explorer:
 
 - Host: Raspberry Pi IP address
 - Port: `1883`
+- Username: `bikeiot`
+- Password: the password set with `mosquitto_passwd`
 - Topic: `devices/bike-001/telemetry`
 
 Example payload:
@@ -131,8 +156,8 @@ Example payload:
 }
 ```
 
-## 9. Notes
+## 10. Notes
 
-- `allow_anonymous true` is fine for local testing.
-- For production, prefer username/password and TLS.
+- The API `.env` file should use `MQTT_USERNAME=bikeiot` and the same password configured in Mosquitto.
+- For production, prefer TLS in addition to username/password.
 - If your ASP.NET app is not running on the Raspberry Pi, change the app to connect to the Raspberry Pi IP instead of `localhost`.

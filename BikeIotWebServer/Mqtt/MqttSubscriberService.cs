@@ -67,11 +67,19 @@ namespace BikeIotWebServer.mqtt
 
             var mqttHost = _configuration["Mqtt:Host"] ?? "localhost";
             var mqttPort = _configuration.GetValue<int?>("Mqtt:Port") ?? 1883;
+            var mqttUsername = _configuration["Mqtt:Username"];
+            var mqttPassword = _configuration["Mqtt:Password"];
 
-            var options = new MqttClientOptionsBuilder()
+            var optionsBuilder = new MqttClientOptionsBuilder()
                 .WithTcpServer(mqttHost, mqttPort)
-                .WithClientId($"bike-web-subscriber-{Guid.NewGuid():N}")
-                .Build();
+                .WithClientId($"bike-web-subscriber-{Guid.NewGuid():N}");
+
+            if (!string.IsNullOrWhiteSpace(mqttUsername))
+            {
+                optionsBuilder = optionsBuilder.WithCredentials(mqttUsername, mqttPassword);
+            }
+
+            var options = optionsBuilder.Build();
 
             await _mqttClient.ConnectAsync(options, cancellationToken);
 
