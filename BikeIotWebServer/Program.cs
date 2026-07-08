@@ -20,9 +20,9 @@ namespace BikeIotWebServer
             builder.Services.AddScoped<IBikeRepository, BikeRepository>();
             builder.Services.AddScoped<BikeTelemetryService>();
 
-            // Add EF Core DbContext (in-memory for now)
+            // Add EF Core DbContext
             builder.Services.AddDbContext<BikeContext>(options =>
-               options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+               options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -46,10 +46,6 @@ namespace BikeIotWebServer
                 var dbContext = scope.ServiceProvider.GetRequiredService<BikeContext>();
                 dbContext.Database.Migrate();
             }
-
-             
-
-
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

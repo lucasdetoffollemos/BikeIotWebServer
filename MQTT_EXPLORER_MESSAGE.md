@@ -16,10 +16,11 @@ Use this example JSON payload:
 
 ```json
 {
-  "velocidade": 22.5,
-  "latitude": -23.5505,
-  "longitude": -46.6333,
-  "timestamp": "2026-06-19T14:30:00Z"
+  "bikeId": 123,
+  "velocidade": 20.5,
+  "latitude": -23.55,
+  "longitude": -46.63,
+  "timestamp": "2026-07-06T12:00:00Z"
 }
 ```
 
