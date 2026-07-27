@@ -1,0 +1,295 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    "https://www.w3.org/2019/wot/hypermedia",
+    {
+      "bikeId": "https://example.org/bikeId",
+      "velocidade": "https://example.org/velocidade",
+      "isLock": "https://example.org/isLock",
+      "timestamp": "http://schema.org/DateTime",
+      "latitude": "http://www.w3.org/2003/01/geo/wgs84_pos#lat",
+      "longitude": "http://www.w3.org/2003/01/geo/wgs84_pos#long"
+    }
+  ],
+  "id": "urn:bikeiot:gateway",
+  "title": "Bike IoT Gateway",
+  "@type": "Thing",
+  "description": "Gateway Thing for receiving bike telemetry and managing bike lock state over HTTP and MQTT.",
+  "version": {
+    "instance": "1.0.0"
+  },
+  "securityDefinitions": {
+    "nosec_sc": {
+      "scheme": "nosec"
+    }
+  },
+  "security": [
+    "nosec_sc"
+  ],
+  "properties": {
+    "health": {
+      "title": "Gateway Health",
+      "description": "Simple API health status.",
+      "type": "boolean",
+      "readOnly": true,
+      "forms": [
+        {
+          "href": "http://localhost:5242/api/Bike/status",
+          "htv:methodName": "GET",
+          "contentType": "application/json",
+          "op": [
+            "readproperty"
+          ]
+        }
+      ]
+    },
+    "telemetryHistory": {
+      "title": "Telemetry History",
+      "description": "Historical telemetry records stored by the gateway. This is not the latest live state per bike.",
+      "type": "array",
+      "readOnly": true,
+      "items": {
+        "$ref": "#/schemaDefinitions/BikeTelemetry"
+      },
+      "forms": [
+        {
+          "href": "http://localhost:5242/api/Bike",
+          "htv:methodName": "GET",
+          "contentType": "application/json",
+          "op": [
+            "readproperty"
+          ]
+        }
+      ]
+    }
+  },
+  "actions": {
+    "submitTelemetry": {
+      "title": "Submit Telemetry",
+      "description": "Submit telemetry for a bike to be persisted by the gateway. Over MQTT, the device identifier is carried in the topic while the bike identifier is carried in the payload.",
+      "input": {
+        "$ref": "#/schemaDefinitions/BikeTelemetry"
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "received": {
+            "type": "boolean"
+          },
+          "bikeId": {
+            "type": "integer"
+          },
+          "velocidade": {
+            "type": "number"
+          },
+          "posicao": {
+            "$ref": "#/schemaDefinitions/Position"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "received",
+          "bikeId",
+          "velocidade",
+          "posicao",
+          "timestamp"
+        ]
+      },
+      "uriVariables": {
+        "deviceId": {
+          "type": "string",
+          "description": "MQTT device identifier used in the telemetry topic.",
+          "pattern": "^[^/]+$"
+        }
+      },
+      "forms": [
+        {
+          "href": "http://localhost:5242/api/Bike",
+          "htv:methodName": "POST",
+          "contentType": "application/json",
+          "op": [
+            "invokeaction"
+          ]
+        },
+        {
+          "href": "mqtt://localhost:1883/devices/{deviceId}/telemetry",
+          "contentType": "application/json",
+          "op": [
+            "invokeaction"
+          ]
+        }
+      ]
+    },
+    "getLockState": {
+      "title": "Get Lock State",
+      "description": "Read the stored lock state for a specific bike.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "bikeId": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bikeId"
+        ]
+      },
+      "output": {
+        "$ref": "#/schemaDefinitions/BikeLockState"
+      },
+      "uriVariables": {
+        "bikeId": {
+          "type": "integer"
+        }
+      },
+      "forms": [
+        {
+          "href": "http://localhost:5242/api/BikeLock/{bikeId}",
+          "htv:methodName": "GET",
+          "contentType": "application/json",
+          "op": [
+            "invokeaction"
+          ]
+        }
+      ]
+    },
+    "setLockState": {
+      "title": "Set Lock State",
+      "description": "Update the stored lock state for a bike. A successful update also causes the gateway to publish an MQTT lock command for that bike.",
+      "input": {
+        "$ref": "#/schemaDefinitions/BikeLockCommand"
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Server-generated lock state record identifier."
+          },
+          "bikeId": {
+            "type": "integer"
+          },
+          "isLock": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "bikeId",
+          "isLock"
+        ]
+      },
+      "forms": [
+        {
+          "href": "http://localhost:5242/api/BikeLock/update",
+          "htv:methodName": "POST",
+          "contentType": "application/json",
+          "op": [
+            "invokeaction"
+          ]
+        }
+      ]
+    }
+  },
+  "events": {
+    "lockCommandPublished": {
+      "title": "Lock Command Published",
+      "description": "MQTT command emitted by the gateway after a successful lock update.",
+      "data": {
+        "$ref": "#/schemaDefinitions/BikeLockCommand"
+      },
+      "uriVariables": {
+        "bikeId": {
+          "type": "integer"
+        }
+      },
+      "forms": [
+        {
+          "href": "mqtt://localhost:1883/bikes/{bikeId}/lock",
+          "contentType": "application/json",
+          "op": [
+            "subscribeevent"
+          ]
+        }
+      ]
+    }
+  },
+  "schemaDefinitions": {
+    "BikeTelemetry": {
+      "type": "object",
+      "properties": {
+        "bikeId": {
+          "type": "integer"
+        },
+        "velocidade": {
+          "type": "number"
+        },
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "bikeId",
+        "velocidade",
+        "latitude",
+        "longitude",
+        "timestamp"
+      ]
+    },
+    "Position": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "latitude",
+        "longitude"
+      ]
+    },
+    "BikeLockState": {
+      "type": "object",
+      "properties": {
+        "bikeId": {
+          "type": "integer"
+        },
+        "isLock": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "bikeId",
+        "isLock"
+      ]
+    },
+    "BikeLockCommand": {
+      "type": "object",
+      "properties": {
+        "bikeId": {
+          "type": "integer"
+        },
+        "isLock": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "bikeId",
+        "isLock"
+      ]
+    }
+  }
+}
