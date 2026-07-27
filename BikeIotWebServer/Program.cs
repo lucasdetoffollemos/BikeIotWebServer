@@ -17,6 +17,7 @@ namespace BikeIotWebServer
             builder.Services.AddControllers();
 
             builder.Services.AddHostedService<MqttSubscriberService>();
+            builder.Services.AddScoped<MqttPublisherService>();
             builder.Services.AddScoped<IBikeRepository, BikeRepository>();
             builder.Services.AddScoped<IBikeLockRepository, BikeLockRepository>();
             builder.Services.AddScoped<BikeTelemetryService>();
