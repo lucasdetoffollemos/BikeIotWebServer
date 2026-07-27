@@ -18,6 +18,9 @@ namespace BikeIotWebServer.Infra
 
             builder.Property(b => b.IsLock)
                    .IsRequired();
+
+            builder.HasIndex(b => b.BikeId)
+                   .IsUnique();
         }
     }
 }

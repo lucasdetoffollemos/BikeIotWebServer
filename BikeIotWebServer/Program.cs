@@ -18,6 +18,7 @@ namespace BikeIotWebServer
 
             builder.Services.AddHostedService<MqttSubscriberService>();
             builder.Services.AddScoped<IBikeRepository, BikeRepository>();
+            builder.Services.AddScoped<IBikeLockRepository, BikeLockRepository>();
             builder.Services.AddScoped<BikeTelemetryService>();
 
             // Add EF Core DbContext
