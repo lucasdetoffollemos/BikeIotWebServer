@@ -1,163 +1,139 @@
-# Mosquitto Setup on Raspberry Pi
+# Raspberry Pi Compose Deployment
 
-This document explains how to install and configure Mosquitto on a Raspberry Pi, and how to copy `mosquitto.conf` to the server.
+This document explains how to run the full BikeIoT stack on a Raspberry Pi with Docker Compose.
 
-## 1. Install Mosquitto
+Services in the stack:
 
-Update packages and install Mosquitto plus client tools:
+- `postgres`
+- `mosquitto`
+- `api`
 
-```bash
-sudo apt update
-sudo apt install -y mosquitto mosquitto-clients
-```
+This setup replaces the old native Mosquitto service on the Raspberry Pi.
 
-## 2. Enable Mosquitto on Boot
+## 1. Remove the Old Native Mosquitto Service
 
-```bash
-sudo systemctl enable mosquitto
-sudo systemctl start mosquitto
-```
-
-Check service status:
+Stop and disable the service:
 
 ```bash
-sudo systemctl status mosquitto --no-pager
+sudo systemctl stop mosquitto
+sudo systemctl disable mosquitto
 ```
 
-## 3. Create the Mosquitto Config File
-
-Use this content in `mosquitto.conf`:
-
-```conf
-listener 1883
-allow_anonymous false
-password_file /etc/mosquitto/passwd
-```
-
-Important:
-- Do not put a space before `#` if you add comments.
-- A line like ` # comment` may fail.
-- Use `# comment` instead.
-
-## 4. Copy `mosquitto.conf` to the Raspberry Pi
-
-### Option A: Copy from another machine with `scp`
-
-From your local machine:
+Remove the package:
 
 ```bash
-scp mosquitto.conf pi@<raspberry-pi-ip>:/home/pi/
+sudo apt remove --purge -y mosquitto mosquitto-clients
+sudo apt autoremove -y
 ```
 
-Then log into the Raspberry Pi:
+Verify removal:
 
 ```bash
-ssh pi@<raspberry-pi-ip>
+systemctl status mosquitto --no-pager
+dpkg -l | grep mosquitto
+which mosquitto
 ```
 
-Copy the file into Mosquitto's config folder:
+## 2. Copy the Repository to the Raspberry Pi
+
+Clone or copy this repository to the Raspberry Pi, then open the repository root.
+
+Example:
 
 ```bash
-sudo cp /home/pi/mosquitto.conf /etc/mosquitto/conf.d/mosquitto.conf
+git clone <repo-url>
+cd BikeIotWebServer
 ```
 
-### Option B: If the file is already on the Raspberry Pi
-
-```bash
-sudo cp /path/to/mosquitto.conf /etc/mosquitto/conf.d/mosquitto.conf
-```
-
-## 5. Create the Mosquitto User
+## 3. Create the Mosquitto Password File
 
 Create the MQTT user used by the app:
 
 ```bash
-sudo mosquitto_passwd -c /etc/mosquitto/passwd bikeiot
+docker run --rm -it -v "$(pwd)/mosquitoConf:/mosquitto/config" eclipse-mosquitto:2 mosquitto_passwd -c /mosquitto/config/passwd bikeiot
 ```
 
 If you need to update the password later:
 
 ```bash
-sudo mosquitto_passwd /etc/mosquitto/passwd bikeiot
+docker run --rm -it -v "$(pwd)/mosquitoConf:/mosquitto/config" eclipse-mosquitto:2 mosquitto_passwd /mosquitto/config/passwd bikeiot
 ```
 
 The password file is created on the Raspberry Pi and should not be committed to this repository.
 
-## 6. Restart Mosquitto
+## 4. Configure Environment Variables
 
-```bash
-sudo systemctl restart mosquitto
+Set the required values in your `.env` file.
+
+MQTT settings:
+
+```env
+MQTT_HOST=mosquitto
+MQTT_PORT=1883
+MQTT_USERNAME=bikeiot
+MQTT_PASSWORD=<same password used in mosquitoConf/passwd>
 ```
 
-Check status again:
+The Compose file already connects the API container to the `mosquitto` service name on the internal Docker network.
+
+## 5. Start the Full Stack
+
+From the repository root:
 
 ```bash
-sudo systemctl status mosquitto --no-pager
+docker compose up -d
 ```
 
-## 7. Troubleshooting
-
-If Mosquitto fails to start, inspect the logs:
+Check container status:
 
 ```bash
-sudo journalctl -xeu mosquitto.service --no-pager
+docker compose ps
 ```
 
-Test the config directly:
+## 6. Verify the Services
+
+Check logs:
 
 ```bash
-sudo mosquitto -c /etc/mosquitto/mosquitto.conf -v
+docker compose logs mosquitto
+docker compose logs api
+docker compose logs postgres
 ```
 
-Check which config files are being loaded:
+If you changed configuration and want to recreate containers:
 
 ```bash
-sudo grep -R "listener\|allow_anonymous\|include_dir" /etc/mosquitto
+docker compose up -d --force-recreate
 ```
 
-Confirm the password file path is loaded too:
+## 7. Test MQTT Authentication
+
+Subscribe from the Raspberry Pi or another machine:
 
 ```bash
-sudo grep -R "password_file" /etc/mosquitto
-```
-
-## 8. Test Publish/Subscribe
-
-Subscribe:
-
-```bash
-mosquitto_sub -h localhost -u bikeiot -P "<password>" -t "devices/+/telemetry" -v
+docker run --rm -it eclipse-mosquitto:2 mosquitto_sub -h <raspberry-pi-ip> -p 1883 -u bikeiot -P "<password>" -t "devices/+/telemetry" -v
 ```
 
 Publish a test message:
 
 ```bash
-mosquitto_pub -h localhost -u bikeiot -P "<password>" -t "devices/bike-001/telemetry" -m '{"velocidade":22.5,"latitude":-23.5505,"longitude":-46.6333,"timestamp":"2026-06-19T14:30:00Z"}'
+docker run --rm eclipse-mosquitto:2 mosquitto_pub -h <raspberry-pi-ip> -p 1883 -u bikeiot -P "<password>" -t "devices/bike-001/telemetry" -m '{"velocidade":22.5,"latitude":-23.5505,"longitude":-46.6333,"timestamp":"2026-06-19T14:30:00Z"}'
 ```
 
-## 9. MQTT Explorer Settings
+## 8. External Device Settings
 
-Use these settings in MQTT Explorer:
+Use these settings in devices or MQTT Explorer:
 
 - Host: Raspberry Pi IP address
 - Port: `1883`
 - Username: `bikeiot`
 - Password: the password set with `mosquitto_passwd`
-- Topic: `devices/bike-001/telemetry`
 
-Example payload:
+The API container uses the internal Docker hostname `mosquitto`, but devices outside Docker must use the Raspberry Pi IP or DNS name.
 
-```json
-{
-  "velocidade": 22.5,
-  "latitude": -23.5505,
-  "longitude": -46.6333,
-  "timestamp": "2026-06-19T14:30:00Z"
-}
-```
+## 9. Notes
 
-## 10. Notes
-
-- The API `.env` file should use `MQTT_USERNAME=bikeiot` and the same password configured in Mosquitto.
-- For production, prefer TLS in addition to username/password.
-- If your ASP.NET app is not running on the Raspberry Pi, change the app to connect to the Raspberry Pi IP instead of `localhost`.
+- `mosquitoConf/mosquitto.conf` is mounted into the container at `/mosquitto/config/mosquitto.conf`.
+- The password file is mounted into the container at `/mosquitto/config/passwd`.
+- Mosquitto data and logs are stored in Docker volumes managed by Compose.
+- If the API fails to connect to MQTT, verify `MQTT_USERNAME` and `MQTT_PASSWORD` in `.env` match the generated Mosquitto password file.

@@ -16,6 +16,19 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+    restart: unless-stopped
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: bikeiot-mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitoConf/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitoConf/passwd:/mosquitto/config/passwd:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    restart: unless-stopped
 
   api:
     build:
@@ -25,16 +38,21 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      mosquitto:
+        condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_URLS: ${ASPNETCORE_URLS}
       ConnectionStrings__DefaultConnection: ${CONNECTION_STRING}
-      Mqtt__Host: ${MQTT_HOST}
-      Mqtt__Port: ${MQTT_PORT}
+      Mqtt__Host: mosquitto
+      Mqtt__Port: 1883
       Mqtt__Username: ${MQTT_USERNAME}
       Mqtt__Password: ${MQTT_PASSWORD}
     ports:
       - "${API_PORT}:8080"
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  mosquitto_data:
+  mosquitto_log:
