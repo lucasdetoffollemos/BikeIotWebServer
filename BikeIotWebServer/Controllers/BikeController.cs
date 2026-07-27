@@ -1,6 +1,7 @@
 ﻿using BikeIotWebServer.Infra;
 using BikeIotWebServer.Services;
 using BikeIotWebServer.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BikeIotWebServer.Controllers
@@ -19,12 +20,14 @@ namespace BikeIotWebServer.Controllers
         }
 
         [HttpGet("status")]
+        [AllowAnonymous]
         public IActionResult GetStatus()
         {
             return Ok(true);
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> PostData([FromBody] BikeTelemetry data)
         {
             if (data == null)
@@ -47,9 +50,16 @@ namespace BikeIotWebServer.Controllers
 
         // GET api/bike
         [HttpGet]
-        public IActionResult GetAllTelemetry()
+        [Authorize]
+        public async Task<IActionResult> GetAllTelemetry([FromQuery] TelemetryHistoryQuery query, CancellationToken cancellationToken)
         {
-            var bikes = _bikeRepository.GetAllBikesAsync();
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (query.From.HasValue && query.To.HasValue && query.From > query.To)
+                return BadRequest("The 'from' value must be earlier than or equal to 'to'.");
+
+            var bikes = await _bikeRepository.GetTelemetryHistoryAsync(query, cancellationToken);
 
             var telemetry = bikes.Select(b => new BikeTelemetry
             {

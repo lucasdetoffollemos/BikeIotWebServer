@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 
 var baseUrl = args.Length > 0 ? args[0].TrimEnd('/') : "http://localhost:5242";
+var apiKey = args.Length > 3 ? args[3] : Environment.GetEnvironmentVariable("BIKEIOT_API_KEY");
 var parsedBikeId = 1;
 var parsedIsLock = false;
 var shouldInvokeLockAction = args.Length > 2
@@ -11,6 +12,11 @@ var bikeId = shouldInvokeLockAction ? parsedBikeId : 1;
 var isLock = shouldInvokeLockAction && parsedIsLock;
 
 using var httpClient = new HttpClient();
+
+if (!string.IsNullOrWhiteSpace(apiKey))
+{
+    httpClient.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
+}
 
 var discovery = await httpClient.GetFromJsonAsync<DiscoveryDocument>($"{baseUrl}/.well-known/wot");
 if (discovery?.Things is null || discovery.Things.Count == 0)
@@ -57,7 +63,7 @@ if (shouldInvokeLockAction && !string.IsNullOrWhiteSpace(setLockUrl))
 }
 else
 {
-    Console.WriteLine("Lock action not invoked. Pass <baseUrl> <bikeId> <true|false> to invoke setLockState.");
+    Console.WriteLine("Lock action not invoked. Pass <baseUrl> <bikeId> <true|false> [apiKey] to invoke setLockState.");
 }
 
 var getLockUrlTemplate = root

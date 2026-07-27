@@ -1,4 +1,5 @@
 using BikeIotWebServer.WoT;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BikeIotWebServer.Controllers
@@ -14,6 +15,7 @@ namespace BikeIotWebServer.Controllers
         }
 
         [HttpGet("td")]
+        [AllowAnonymous]
         public IActionResult GetThingDescription()
         {
             var httpBaseUrl = GetHttpBaseUrl();
@@ -25,6 +27,7 @@ namespace BikeIotWebServer.Controllers
         }
 
         [HttpGet(".well-known/wot")]
+        [AllowAnonymous]
         public IActionResult GetDiscoveryDocument()
         {
             var discovery = WotDescriptionFactory.BuildDiscoveryDocument(GetHttpBaseUrl());

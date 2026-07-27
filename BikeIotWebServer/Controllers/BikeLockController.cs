@@ -1,6 +1,7 @@
 using BikeIotWebServer.Infra;
 using BikeIotWebServer.mqtt;
 using BikeIotWebServer.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BikeIotWebServer.Controllers
@@ -19,6 +20,7 @@ namespace BikeIotWebServer.Controllers
         }
 
         [HttpGet("{bikeId:int}")]
+        [Authorize]
         public async Task<IActionResult> GetByBikeId([FromRoute] int bikeId)
         {
             var bikeLock = await _bikeLockRepository.GetByBikeIdAsync(bikeId);
@@ -34,6 +36,7 @@ namespace BikeIotWebServer.Controllers
         }
 
         [HttpPost("update")]
+        [Authorize]
         public async Task<IActionResult> Update([FromBody] BikeLockUpdateRequest request)
         {
             if (request == null)

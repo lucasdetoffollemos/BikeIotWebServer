@@ -33,6 +33,12 @@ namespace BikeIotWebServer.WoT
                 },
                 ["securityDefinitions"] = new JsonObject
                 {
+                    ["apiKey_sc"] = new JsonObject
+                    {
+                        ["scheme"] = "apikey",
+                        ["in"] = "header",
+                        ["name"] = "X-Api-Key"
+                    },
                     ["nosec_sc"] = new JsonObject
                     {
                         ["scheme"] = "nosec"
@@ -47,6 +53,7 @@ namespace BikeIotWebServer.WoT
                         ["description"] = "Simple API health status.",
                         ["type"] = "boolean",
                         ["readOnly"] = true,
+                        ["security"] = new JsonArray("nosec_sc"),
                         ["forms"] = new JsonArray
                         {
                             CreateForm($"{httpBaseUrl}/api/Bike/status", "GET", "application/json", "readproperty")
@@ -58,7 +65,17 @@ namespace BikeIotWebServer.WoT
                         ["description"] = "Historical telemetry records stored by the gateway. This is not the latest live state per bike.",
                         ["type"] = "array",
                         ["readOnly"] = true,
+                        ["security"] = new JsonArray("apiKey_sc"),
                         ["items"] = CreateRef("#/schemaDefinitions/BikeTelemetry"),
+                        ["uriVariables"] = new JsonObject
+                        {
+                            ["bikeId"] = new JsonObject { ["type"] = "integer" },
+                            ["from"] = new JsonObject { ["type"] = "string", ["format"] = "date-time" },
+                            ["to"] = new JsonObject { ["type"] = "string", ["format"] = "date-time" },
+                            ["limit"] = new JsonObject { ["type"] = "integer", ["minimum"] = 1, ["maximum"] = 500 },
+                            ["offset"] = new JsonObject { ["type"] = "integer", ["minimum"] = 0 },
+                            ["order"] = new JsonObject { ["type"] = "string", ["enum"] = new JsonArray("asc", "desc") }
+                        },
                         ["forms"] = new JsonArray
                         {
                             CreateForm($"{httpBaseUrl}/api/Bike", "GET", "application/json", "readproperty")
@@ -71,6 +88,7 @@ namespace BikeIotWebServer.WoT
                     {
                         ["title"] = "Submit Telemetry",
                         ["description"] = "Submit telemetry for a bike to be persisted by the gateway. Over MQTT, the device identifier is carried in the topic while the bike identifier is carried in the payload.",
+                        ["security"] = new JsonArray("apiKey_sc"),
                         ["input"] = CreateRef("#/schemaDefinitions/BikeTelemetry"),
                         ["output"] = new JsonObject
                         {
@@ -108,6 +126,7 @@ namespace BikeIotWebServer.WoT
                     {
                         ["title"] = "Get Lock State",
                         ["description"] = "Read the stored lock state for a specific bike.",
+                        ["security"] = new JsonArray("apiKey_sc"),
                         ["input"] = new JsonObject
                         {
                             ["type"] = "object",
@@ -131,6 +150,7 @@ namespace BikeIotWebServer.WoT
                     {
                         ["title"] = "Set Lock State",
                         ["description"] = "Update the stored lock state for a bike. A successful update also causes the gateway to publish an MQTT lock command for that bike.",
+                        ["security"] = new JsonArray("apiKey_sc"),
                         ["input"] = CreateRef("#/schemaDefinitions/BikeLockCommand"),
                         ["output"] = new JsonObject
                         {
@@ -159,6 +179,7 @@ namespace BikeIotWebServer.WoT
                     {
                         ["title"] = "Lock Command Published",
                         ["description"] = "MQTT command emitted by the gateway after a successful lock update.",
+                        ["security"] = new JsonArray("apiKey_sc"),
                         ["data"] = CreateRef("#/schemaDefinitions/BikeLockCommand"),
                         ["uriVariables"] = new JsonObject
                         {
